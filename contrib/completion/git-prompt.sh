@@ -52,6 +52,13 @@
 # variable, which defaults to true once GIT_PS1_SHOWUNTRACKEDFILES is
 # enabled.
 #
+# If you would like to limit the branch name length to a maximum number of
+# characters, then you can set GIT_PS1_BRANCH_NAME_LIMIT. If
+# GIT_PS1_SHOWDIRTYSTATE, GIT_PS1_SHOWSTASHSTATE or
+# GIT_PS1_SHOWUNTRACKEDFILES are set the symbols these append to the
+# branch name will still be included and not limited by setting
+# GIT_PS1_BRANCH_NAME_LIMIT (unlike using a format string argument).
+#
 # If you would like to see the difference between HEAD and its upstream,
 # set GIT_PS1_SHOWUPSTREAM="auto".  A "<" indicates you are behind, ">"
 # indicates you are ahead, "<>" indicates you have diverged and "="
@@ -488,6 +495,17 @@ __git_ps1 ()
 		r="$r $step/$total"
 	fi
 
+	b=${b##refs/heads/}
+	if [ -n "${GIT_PS1_BRANCH_NAME_LIMIT}" ]; then
+		if [ "${#b}" -gt "$((GIT_PS1_BRANCH_NAME_LIMIT))" ]; then
+			if [ "$((GIT_PS1_BRANCH_NAME_LIMIT))" -le 3 ]; then
+				b=$(printf "%.${GIT_PS1_BRANCH_NAME_LIMIT}s" "$b")
+			else
+				b=$(printf "%.$((GIT_PS1_BRANCH_NAME_LIMIT - 3))s" "$b")...
+			fi
+		fi
+	fi
+
 	local w=""
 	local i=""
 	local s=""
@@ -536,7 +554,6 @@ __git_ps1 ()
 		__git_ps1_colorize_gitstring
 	fi
 
-	b=${b##refs/heads/}
 	if [ $pcmode = yes ] && [ $ps1_expanded = yes ]; then
 		__git_ps1_branch_name=$b
 		b="\${__git_ps1_branch_name}"

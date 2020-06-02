@@ -662,6 +662,105 @@ test_expect_success 'prompt - zsh color pc mode' '
 	) &&
 	test_cmp expected "$actual"
 '
+test_expect_success 'prompt - branch name limit - branch name shorter' '
+	printf " (master)" >expected &&
+	(
+		GIT_PS1_BRANCH_NAME_LIMIT=15 &&
+		__git_ps1 >"$actual"
+	) &&
+	test_cmp expected "$actual"
+'
+
+test_expect_success 'prompt - branch name limit - branch name same length' '
+	printf " (master)" >expected &&
+	(
+		GIT_PS1_BRANCH_NAME_LIMIT=6 &&
+		__git_ps1 >"$actual"
+	) &&
+	test_cmp expected "$actual"
+'
+
+test_expect_success 'prompt - branch name limit - branch name over limit' '
+	printf " (ma...)" >expected &&
+	(
+		GIT_PS1_BRANCH_NAME_LIMIT=5 &&
+		__git_ps1 >"$actual"
+	) &&
+	test_cmp expected "$actual"
+'
+
+test_expect_success 'prompt - branch name limit - inside bare repository' '
+	printf " (BARE:ma...)" >expected &&
+	git init --bare bare.git &&
+	test_when_finished "rm -rf bare.git" &&
+	(
+		GIT_PS1_BRANCH_NAME_LIMIT=5 &&
+		cd bare.git &&
+		__git_ps1 >"$actual"
+	) &&
+	test_cmp expected "$actual"
+'
+
+test_expect_success 'prompt - branch name limit - inside .git directory' '
+	printf " (GIT_DIR!)" >expected &&
+	(
+		GIT_PS1_BRANCH_NAME_LIMIT=5 &&
+		cd .git &&
+		__git_ps1 >"$actual"
+	) &&
+	test_cmp expected "$actual"
+'
+
+test_expect_success 'prompt - branch name limit - limit branch name with dirty worktree' '
+	printf " (ma... *)" >expected &&
+	echo "dirty" >file &&
+	test_when_finished "git reset --hard" &&
+	(
+		GIT_PS1_BRANCH_NAME_LIMIT=5 &&
+		GIT_PS1_SHOWDIRTYSTATE=y &&
+		__git_ps1 >"$actual"
+	) &&
+	test_cmp expected "$actual"
+'
+
+test_expect_success 'prompt - branch name limit - limit branch name with dirty index and worktree' '
+	printf " (ma... *+)" >expected &&
+	echo "dirty index" >file &&
+	test_when_finished "git reset --hard" &&
+	git add -u &&
+	echo "dirty worktree" >file &&
+	(
+		GIT_PS1_BRANCH_NAME_LIMIT=5 &&
+		GIT_PS1_SHOWDIRTYSTATE=y &&
+		__git_ps1 >"$actual"
+	) &&
+	test_cmp expected "$actual"
+'
+
+test_expect_success 'prompt - branch name limit - limit branch name with stash status indicator' '
+	printf " (ma... $)" >expected &&
+	echo 2 >file &&
+	git stash &&
+	test_when_finished "git stash drop" &&
+	git pack-refs --all &&
+	(
+		GIT_PS1_BRANCH_NAME_LIMIT=5 &&
+		GIT_PS1_SHOWSTASHSTATE=y &&
+		__git_ps1 >"$actual"
+	) &&
+	test_cmp expected "$actual"
+'
+
+test_expect_success 'prompt - branch name limit - limit branch name with bash color pc mode' '
+	printf "BEFORE: (${c_green}\${__git_ps1_branch_name}${c_clear}):AFTER\\nma..." >expected &&
+	(
+		GIT_PS1_BRANCH_NAME_LIMIT=5 &&
+		GIT_PS1_SHOWCOLORHINTS=y &&
+		__git_ps1 "BEFORE:" ":AFTER" >"$actual" &&
+		printf "%s\\n%s" "$PS1" "${__git_ps1_branch_name}" >"$actual"
+	) &&
+	test_cmp expected "$actual"
+'
 
 test_expect_success 'prompt - hide if pwd ignored - env var unset, config disabled' '
 	printf " (master)" >expected &&
